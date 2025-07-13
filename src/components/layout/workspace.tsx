@@ -6,7 +6,7 @@ import { ChatArea } from '@/components/chat/chat-area'
 import { FileExplorer } from '@/components/file-explorer/file-explorer'
 import { Terminal } from '@/components/terminal/terminal'
 import { SettingsPanel } from '@/components/settings/settings-panel'
-import McpDashboard from '@/components/mcp/McpDashboard'
+// import McpDashboard from '@/components/mcp/McpDashboard'
 import FileExplorerClaude from '@/components/claude-code/FileExplorer'
 import IntegratedTerminal from '@/components/claude-code/IntegratedTerminal'
 import ConversationHistory from '@/components/claude-code/ConversationHistory'
@@ -74,7 +74,7 @@ export function Workspace() {
       case 'settings':
         return <SettingsPanel />
       case 'mcp':
-        return <McpDashboard />
+        return <div className="p-4">MCP Dashboard (Coming Soon)</div>
       case 'claude-files':
         return <FileExplorerClaude />
       case 'claude-terminal':

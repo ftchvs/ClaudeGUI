@@ -1,0 +1,124 @@
+{
+  "mcpServers": {
+    "puppeteer": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-puppeteer"],
+      "description": "Web automation and browser control",
+      "capabilities": [
+        "web_navigation",
+        "page_interaction", 
+        "screenshot_capture",
+        "form_automation",
+        "data_extraction"
+      ],
+      "settings": {
+        "headless": true,
+        "defaultTimeout": 30000,
+        "defaultViewport": {
+          "width": 1280,
+          "height": 720
+        }
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["@context7/mcp-server"],
+      "description": "Documentation and library context provider",
+      "capabilities": [
+        "library_documentation",
+        "api_reference",
+        "code_examples",
+        "dependency_resolution"
+      ],
+      "settings": {
+        "cacheDir": ".context7-cache",
+        "maxCacheSize": "1GB",
+        "updateInterval": "24h"
+      }
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": ["@mendable/firecrawl-mcp"],
+      "description": "Web scraping and content extraction",
+      "capabilities": [
+        "web_scraping",
+        "content_extraction",
+        "batch_crawling",
+        "url_mapping",
+        "structured_data"
+      ],
+      "settings": {
+        "rateLimit": 100,
+        "timeout": 60000,
+        "formats": ["markdown", "html", "text"]
+      }
+    },
+    "github": {
+      "command": "npx", 
+      "args": ["@modelcontextprotocol/server-github"],
+      "description": "GitHub integration for repository management",
+      "capabilities": [
+        "repository_access",
+        "issue_management",
+        "pull_requests",
+        "commit_operations",
+        "branch_management"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem"],
+      "description": "Local file system operations",
+      "capabilities": [
+        "file_read",
+        "file_write", 
+        "directory_operations",
+        "file_search",
+        "permissions_management"
+      ],
+      "settings": {
+        "allowedPaths": [
+          "./",
+          "~/Projects",
+          "~/Documents"
+        ],
+        "restrictedPaths": [
+          "/etc",
+          "/usr/bin",
+          "~/.ssh"
+        ]
+      }
+    }
+  },
+  "features": {
+    "autoStart": true,
+    "healthCheck": {
+      "enabled": true,
+      "interval": 30000,
+      "timeout": 5000
+    },
+    "logging": {
+      "level": "info",
+      "file": "mcp-servers.log",
+      "maxSize": "10MB"
+    },
+    "security": {
+      "sandboxMode": true,
+      "allowNetworkAccess": true,
+      "allowFileSystemAccess": true
+    }
+  },
+  "ui": {
+    "showConnectionStatus": true,
+    "showCapabilities": true,
+    "allowServerToggle": true,
+    "notifications": {
+      "onConnect": true,
+      "onDisconnect": true,
+      "onError": true
+    }
+  }
+}
