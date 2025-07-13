@@ -40,7 +40,8 @@ function App() {
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true)
+  const [activeTab, setActiveTab] = useState('chat')
   
   const [kpiData, setKpiData] = useState<KPIData>({
     totalTokens: 12547,
@@ -50,6 +51,34 @@ function App() {
     successRate: 98.5,
     activeSessions: 3
   })
+
+  // OpenAI-inspired theme colors
+  const theme = {
+    dark: {
+      bg: '#000000',
+      surface: '#1a1a1a',
+      border: '#333333',
+      text: '#ffffff',
+      textSecondary: '#b3b3b3',
+      accent: '#10a37f',
+      button: '#ffffff',
+      buttonText: '#000000',
+      input: '#2d2d2d'
+    },
+    light: {
+      bg: '#ffffff',
+      surface: '#f7f7f8',
+      border: '#e5e5e5',
+      text: '#000000',
+      textSecondary: '#6b6b6b',
+      accent: '#10a37f',
+      button: '#000000',
+      buttonText: '#ffffff',
+      input: '#ffffff'
+    }
+  }
+  
+  const currentTheme = isDarkMode ? theme.dark : theme.light
 
   const handleSend = () => {
     if (!input.trim()) return
@@ -112,136 +141,151 @@ function App() {
 
   return (
     <div style={{ 
-      background: '#1f2937', 
-      color: 'white', 
+      background: currentTheme.bg, 
+      color: currentTheme.text, 
       minHeight: '100vh',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
+      fontFamily: '"Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
+      transition: 'all 0.3s ease'
     }}>
-      {/* Top Navigation Bar */}
+      {/* OpenAI-inspired Top Navigation */}
       <nav style={{
-        background: '#111827',
-        borderBottom: '1px solid #374151',
-        padding: '0 20px',
-        height: '60px',
+        background: currentTheme.bg,
+        borderBottom: `1px solid ${currentTheme.border}`,
+        padding: '0 24px',
+        height: '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <h1 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            margin: 0
-          }}>
-            Claude GUI
-          </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: currentTheme.accent,
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: 'white'
+            }}>
+              C
+            </div>
+            <h1 style={{ 
+              fontSize: '20px', 
+              fontWeight: '600',
+              color: currentTheme.text,
+              margin: 0
+            }}>
+              Claude GUI
+            </h1>
+          </div>
           
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowMenu(!showMenu)}
-              style={{
-                background: showMenu ? '#374151' : 'transparent',
-                border: '1px solid #4b5563',
-                borderRadius: '6px',
-                padding: '8px 12px',
-                color: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              ☰ Menu
-            </button>
-            
-            {showMenu && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: '8px',
-                background: '#374151',
-                border: '1px solid #4b5563',
-                borderRadius: '6px',
-                minWidth: '200px',
-                zIndex: 50,
-                boxShadow: '0 10px 25px rgba(0,0,0,0.25)'
-              }}>
-                <div style={{ padding: '8px 0' }}>
-                  <button style={{ 
-                    width: '100%', 
-                    textAlign: 'left', 
-                    padding: '12px 16px', 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}>
-                    📁 File Explorer
-                  </button>
-                  <button style={{ 
-                    width: '100%', 
-                    textAlign: 'left', 
-                    padding: '12px 16px', 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}>
-                    📊 Analytics
-                  </button>
-                  <button style={{ 
-                    width: '100%', 
-                    textAlign: 'left', 
-                    padding: '12px 16px', 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}>
-                    🔌 MCP Servers
-                  </button>
-                  <button style={{ 
-                    width: '100%', 
-                    textAlign: 'left', 
-                    padding: '12px 16px', 
-                    background: 'transparent', 
-                    border: 'none', 
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}>
-                    📝 Project History
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Horizontal Menu Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {[
+              { id: 'chat', label: 'Chat', icon: '💬' },
+              { id: 'files', label: 'Files', icon: '📁' },
+              { id: 'analytics', label: 'Analytics', icon: '📊' },
+              { id: 'servers', label: 'MCP', icon: '🔌' },
+              { id: 'history', label: 'History', icon: '📝' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  background: activeTab === tab.id ? currentTheme.surface : 'transparent',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  color: activeTab === tab.id ? currentTheme.text : currentTheme.textSecondary,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  if (activeTab !== tab.id) {
+                    const target = e.target as HTMLButtonElement
+                    target.style.background = currentTheme.surface
+                    target.style.color = currentTheme.text
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (activeTab !== tab.id) {
+                    const target = e.target as HTMLButtonElement
+                    target.style.background = 'transparent'
+                    target.style.color = currentTheme.textSecondary
+                  }
+                }}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', fontSize: '0.875rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Status Indicators */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: currentTheme.textSecondary }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: '#10b981' }}>●</span>
-              <span>Claude Connected</span>
+              <div style={{ 
+                width: '8px', 
+                height: '8px', 
+                borderRadius: '50%', 
+                background: currentTheme.accent 
+              }}></div>
+              <span>Connected</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: '#3b82f6' }}>●</span>
-              <span>3 MCP Servers</span>
+              <span>3 Servers</span>
             </div>
           </div>
           
+          {/* Theme Toggle */}
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '8px',
+              padding: '8px',
+              color: currentTheme.text,
+              cursor: 'pointer',
+              fontSize: '16px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = currentTheme.surface}
+            onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = 'transparent'}
+          >
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+          
+          {/* Settings */}
           <button 
             onClick={() => setShowSettings(!showSettings)}
             style={{
-              background: showSettings ? '#374151' : 'transparent',
-              border: '1px solid #4b5563',
-              borderRadius: '6px',
+              background: showSettings ? currentTheme.surface : 'transparent',
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '8px',
               padding: '8px',
-              color: 'white',
-              cursor: 'pointer'
+              color: currentTheme.text,
+              cursor: 'pointer',
+              fontSize: '16px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => {
+              if (!showSettings) (e.target as HTMLButtonElement).style.background = currentTheme.surface
+            }}
+            onMouseOut={(e) => {
+              if (!showSettings) (e.target as HTMLButtonElement).style.background = 'transparent'
             }}
           >
             ⚙️
@@ -252,37 +296,41 @@ function App() {
       {/* Settings Panel */}
       {showSettings && (
         <div style={{
-          background: '#374151',
-          borderBottom: '1px solid #4b5563',
-          padding: '20px'
+          background: currentTheme.surface,
+          borderBottom: `1px solid ${currentTheme.border}`,
+          padding: '24px'
         }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: '#f3f4f6' }}>Settings</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+            <h3 style={{ margin: '0 0 20px 0', color: currentTheme.text, fontSize: '18px', fontWeight: '600' }}>Settings</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#d1d5db' }}>Theme</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: currentTheme.text, fontSize: '14px', fontWeight: '500' }}>Theme</label>
                 <select style={{ 
                   width: '100%', 
-                  padding: '8px', 
-                  borderRadius: '4px', 
-                  background: '#1f2937', 
-                  border: '1px solid #4b5563', 
-                  color: 'white' 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  background: currentTheme.input, 
+                  border: `1px solid ${currentTheme.border}`, 
+                  color: currentTheme.text,
+                  fontSize: '14px',
+                  outline: 'none'
                 }}>
-                  <option>Dark</option>
-                  <option>Light</option>
+                  <option>{isDarkMode ? 'Dark' : 'Light'}</option>
+                  <option>{isDarkMode ? 'Light' : 'Dark'}</option>
                   <option>Auto</option>
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#d1d5db' }}>Model</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: currentTheme.text, fontSize: '14px', fontWeight: '500' }}>Model</label>
                 <select style={{ 
                   width: '100%', 
-                  padding: '8px', 
-                  borderRadius: '4px', 
-                  background: '#1f2937', 
-                  border: '1px solid #4b5563', 
-                  color: 'white' 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  background: currentTheme.input, 
+                  border: `1px solid ${currentTheme.border}`, 
+                  color: currentTheme.text,
+                  fontSize: '14px',
+                  outline: 'none'
                 }}>
                   <option>Claude 3.5 Sonnet</option>
                   <option>Claude 3 Haiku</option>
@@ -290,14 +338,16 @@ function App() {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#d1d5db' }}>Max Tokens</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: currentTheme.text, fontSize: '14px', fontWeight: '500' }}>Max Tokens</label>
                 <input type="number" defaultValue="4000" style={{ 
                   width: '100%', 
-                  padding: '8px', 
-                  borderRadius: '4px', 
-                  background: '#1f2937', 
-                  border: '1px solid #4b5563', 
-                  color: 'white' 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  background: currentTheme.input, 
+                  border: `1px solid ${currentTheme.border}`, 
+                  color: currentTheme.text,
+                  fontSize: '14px',
+                  outline: 'none'
                 }} />
               </div>
             </div>
@@ -307,46 +357,82 @@ function App() {
 
       {/* KPI Dashboard */}
       <div style={{
-        background: '#374151',
-        borderBottom: '1px solid #4b5563',
-        padding: '20px'
+        background: currentTheme.bg,
+        borderBottom: `1px solid ${currentTheme.border}`,
+        padding: '24px'
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: '#f3f4f6' }}>Dashboard</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Total Tokens</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+          <h3 style={{ margin: '0 0 20px 0', color: currentTheme.text, fontSize: '18px', fontWeight: '600' }}>Dashboard</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Total Tokens</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.accent }}>
                 {kpiData.totalTokens.toLocaleString()}
               </div>
             </div>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Total Cost</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Total Cost</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.accent }}>
                 ${kpiData.totalCost.toFixed(3)}
               </div>
             </div>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Requests Today</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Requests Today</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.text }}>
                 {kpiData.requestsToday}
               </div>
             </div>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Avg Response</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#8b5cf6' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Avg Response</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.text }}>
                 {kpiData.avgResponseTime.toFixed(1)}s
               </div>
             </div>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Success Rate</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Success Rate</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.accent }}>
                 {kpiData.successRate}%
               </div>
             </div>
-            <div style={{ background: '#1f2937', borderRadius: '8px', padding: '15px' }}>
-              <div style={{ color: '#9ca3af', fontSize: '0.875rem', marginBottom: '5px' }}>Active Sessions</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>
+            <div style={{ 
+              background: currentTheme.surface, 
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px', 
+              padding: '20px',
+              transition: 'all 0.2s ease'
+            }}>
+              <div style={{ color: currentTheme.textSecondary, fontSize: '14px', marginBottom: '8px', fontWeight: '500' }}>Active Sessions</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: currentTheme.text }}>
                 {kpiData.activeSessions}
               </div>
             </div>
@@ -355,58 +441,62 @@ function App() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '24px' }}>
         <div style={{ 
           maxWidth: '1200px', 
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
+          gap: '24px'
         }}>
           <main style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '20px',
+            gap: '24px',
             minHeight: '600px'
           }}>
+            {/* Chat Interface */}
             <section style={{
-              background: '#374151',
-              borderRadius: '8px',
-              padding: '20px',
+              background: currentTheme.surface,
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <h2 style={{ margin: '0 0 15px 0', color: '#f3f4f6' }}>Chat Interface</h2>
+              <h2 style={{ margin: '0 0 20px 0', color: currentTheme.text, fontSize: '18px', fontWeight: '600' }}>Chat</h2>
               
               <div style={{
-                background: '#1f2937',
-                borderRadius: '6px',
-                padding: '15px',
+                background: currentTheme.bg,
+                border: `1px solid ${currentTheme.border}`,
+                borderRadius: '8px',
+                padding: '16px',
                 minHeight: '400px',
                 flex: 1,
                 overflowY: 'auto',
-                marginBottom: '15px'
+                marginBottom: '16px'
               }}>
                 {messages.map(message => (
                   <div key={message.id} style={{
-                    marginBottom: '15px',
+                    marginBottom: '16px',
                     display: 'flex',
                     justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
                   }}>
                     <div style={{
                       maxWidth: '80%',
-                      padding: '10px 15px',
+                      padding: '12px 16px',
                       borderRadius: '12px',
-                      background: message.role === 'user' ? '#3b82f6' : '#4b5563',
-                      color: 'white'
+                      background: message.role === 'user' ? currentTheme.button : currentTheme.surface,
+                      color: message.role === 'user' ? currentTheme.buttonText : currentTheme.text,
+                      border: `1px solid ${currentTheme.border}`
                     }}>
-                      <p style={{ margin: '0 0 5px 0' }}>{message.content}</p>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '14px', lineHeight: '1.5' }}>{message.content}</p>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <small style={{ opacity: 0.7, fontSize: '0.75rem' }}>
+                        <small style={{ opacity: 0.7, fontSize: '12px', color: message.role === 'user' ? currentTheme.buttonText : currentTheme.textSecondary }}>
                           {message.timestamp.toLocaleTimeString()}
                         </small>
                         {message.tokens && (
-                          <small style={{ opacity: 0.7, fontSize: '0.75rem' }}>
+                          <small style={{ opacity: 0.7, fontSize: '12px', color: message.role === 'user' ? currentTheme.buttonText : currentTheme.textSecondary }}>
                             {message.tokens} tokens • ${message.cost?.toFixed(4)}
                           </small>
                         )}
@@ -418,44 +508,50 @@ function App() {
                 {isLoading && (
                   <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                     <div style={{
-                      padding: '10px 15px',
+                      padding: '12px 16px',
                       borderRadius: '12px',
-                      background: '#4b5563',
-                      color: '#9ca3af'
+                      background: currentTheme.surface,
+                      color: currentTheme.textSecondary,
+                      border: `1px solid ${currentTheme.border}`
                     }}>
-                      <span>Claude is thinking...</span>
-                      <span style={{ animation: 'pulse 1.5s infinite' }}>●●●</span>
+                      <span>Claude is thinking</span>
+                      <span style={{ animation: 'pulse 1.5s infinite' }}>...</span>
                     </div>
                   </div>
                 )}
               </div>
               
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <input 
                   type="text" 
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Type your message here..."
+                  placeholder="Message Claude..."
                   style={{
                     flex: 1,
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #4b5563',
-                    background: '#1f2937',
-                    color: 'white'
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: `1px solid ${currentTheme.border}`,
+                    background: currentTheme.input,
+                    color: currentTheme.text,
+                    fontSize: '14px',
+                    outline: 'none'
                   }}
                 />
                 <button 
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
                   style={{
-                    padding: '10px 20px',
-                    borderRadius: '6px',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
                     border: 'none',
-                    background: !input.trim() || isLoading ? '#6b7280' : '#3b82f6',
-                    color: 'white',
-                    cursor: !input.trim() || isLoading ? 'not-allowed' : 'pointer'
+                    background: !input.trim() || isLoading ? currentTheme.textSecondary : currentTheme.button,
+                    color: !input.trim() || isLoading ? currentTheme.bg : currentTheme.buttonText,
+                    cursor: !input.trim() || isLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease'
                   }}
                 >
                   Send
@@ -463,16 +559,19 @@ function App() {
               </div>
             </section>
 
+            {/* Execution Terminal */}
             <section style={{
-              background: '#374151',
-              borderRadius: '8px',
-              padding: '20px'
+              background: currentTheme.surface,
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px',
+              padding: '24px'
             }}>
-              <h2 style={{ margin: '0 0 15px 0', color: '#f3f4f6' }}>Execution Terminal</h2>
+              <h2 style={{ margin: '0 0 20px 0', color: currentTheme.text, fontSize: '18px', fontWeight: '600' }}>Execution</h2>
               <div style={{
-                background: '#1f2937',
-                borderRadius: '6px',
-                padding: '15px',
+                background: currentTheme.bg,
+                border: `1px solid ${currentTheme.border}`,
+                borderRadius: '8px',
+                padding: '16px',
                 minHeight: '400px',
                 overflowY: 'auto'
               }}>
@@ -483,42 +582,47 @@ function App() {
                     justifyContent: 'center',
                     height: '100%',
                     textAlign: 'center',
-                    color: '#9ca3af'
+                    color: currentTheme.textSecondary
                   }}>
                     <div>
-                      <div style={{ fontSize: '3rem', marginBottom: '10px' }}>⚡</div>
-                      <p>Ready for Execution</p>
-                      <p style={{ fontSize: '0.875rem' }}>Send a message to see execution steps</p>
+                      <div style={{ fontSize: '48px', marginBottom: '12px' }}>⚡</div>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '500' }}>Ready for Execution</p>
+                      <p style={{ margin: 0, fontSize: '14px' }}>Send a message to see execution steps</p>
                     </div>
                   </div>
                 ) : (
                   executionSteps.map(step => (
                     <div key={step.id} style={{
-                      marginBottom: '15px',
-                      padding: '12px',
-                      background: '#374151',
-                      borderRadius: '6px',
+                      marginBottom: '12px',
+                      padding: '16px',
+                      background: currentTheme.surface,
+                      border: `1px solid ${currentTheme.border}`,
+                      borderRadius: '8px',
                       borderLeft: `4px solid ${
-                        step.status === 'running' ? '#3b82f6' :
-                        step.status === 'completed' ? '#10b981' : '#ef4444'
+                        step.status === 'running' ? currentTheme.accent :
+                        step.status === 'completed' ? currentTheme.accent : '#ef4444'
                       }`
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ 
-                          color: step.status === 'running' ? '#3b82f6' :
-                                 step.status === 'completed' ? '#10b981' : '#ef4444'
+                          color: step.status === 'running' ? currentTheme.accent :
+                                 step.status === 'completed' ? currentTheme.accent : '#ef4444',
+                          fontSize: '14px'
                         }}>
                           {step.status === 'running' ? '⟳' : 
                            step.status === 'completed' ? '✓' : '✗'}
                         </span>
-                        <span style={{ fontWeight: 'bold' }}>{step.title}</span>
+                        <span style={{ fontWeight: '500', fontSize: '14px', color: currentTheme.text }}>{step.title}</span>
                       </div>
                       {step.output && (
                         <div style={{ 
                           marginTop: '8px', 
-                          fontSize: '0.875rem', 
-                          color: '#9ca3af',
-                          fontFamily: 'monospace'
+                          fontSize: '13px', 
+                          color: currentTheme.textSecondary,
+                          fontFamily: '"SF Mono", "Monaco", "Cascadia Code", monospace',
+                          background: currentTheme.bg,
+                          padding: '8px',
+                          borderRadius: '4px'
                         }}>
                           {step.output}
                         </div>
@@ -531,16 +635,17 @@ function App() {
           </main>
 
           <footer style={{
-            borderTop: '1px solid #374151',
+            borderTop: `1px solid ${currentTheme.border}`,
             paddingTop: '20px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: '0.875rem',
-            color: '#9ca3af'
+            fontSize: '14px',
+            color: currentTheme.textSecondary
           }}>
-            <div>
-              <span style={{ color: '#10b981' }}>●</span> Claude GUI Active
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: currentTheme.accent, fontSize: '12px' }}>●</span> 
+              <span>Claude GUI Active</span>
             </div>
             <div>
               Version 2.0.0 | Enhanced with Dashboard & Analytics
