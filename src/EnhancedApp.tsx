@@ -8,7 +8,7 @@ import EnhancedFileExplorer from './components/visual/EnhancedFileExplorer'
 import ClaudeCodeCommandCenter from './components/claude-code/ClaudeCodeCommandCenter'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
-import { claudeCodeService, type ServiceStatus } from './services/claudeCodeService'
+import { getClaudeCodeService, isElectronEnvironment, type ServiceStatus } from './services/serviceProvider'
 import { useErrorHandler } from './hooks/useErrorHandler'
 import { claudeCodeDark, claudeCodeLight, type PremiumTheme } from './design-system/theme'
 import { Icons } from './design-system/icons'
@@ -111,7 +111,8 @@ function EnhancedApp() {
     const savedApiKey = localStorage.getItem('claude_api_key') || ''
     setApiKey(savedApiKey)
     
-    // Update service status
+    // Update service status with dynamic service
+    const claudeCodeService = getClaudeCodeService()
     claudeCodeService.getStatus().then(status => {
       setServiceStatus(status)
     })
@@ -164,13 +165,14 @@ function EnhancedApp() {
 
     try {
       // Send to Claude service with error handling
+      const claudeCodeService = getClaudeCodeService()
       const response = await withErrorHandling(
         () => claudeCodeService.chat(message, {
           conversationHistory: messages.slice(-10), // Last 10 messages for context
           currentDirectory: '/workspace/ClaudeGUI'
         }),
         'api'
-      )()
+      )() as any
 
       if (!response) {
         throw new Error('Failed to get response from Claude service')
@@ -251,10 +253,11 @@ function EnhancedApp() {
 
     try {
       // Execute command via service with error handling
+      const claudeCodeService = getClaudeCodeService()
       const response = await withErrorHandling(
         () => claudeCodeService.executeTerminalCommand(command),
         'api'
-      )()
+      )() as any
 
       if (!response) {
         throw new Error('Failed to execute command')
@@ -289,6 +292,7 @@ function EnhancedApp() {
 
   const handleApiKeyChange = (newApiKey: string) => {
     setApiKey(newApiKey)
+    const claudeCodeService = getClaudeCodeService()
     claudeCodeService.setApiKey(newApiKey)
     claudeCodeService.getStatus().then(status => {
       setServiceStatus(status)

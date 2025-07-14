@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react'
 import { Icons } from '../../design-system/icons'
 import { claudeCodeDark } from '../../design-system/theme'
-import { claudeCodeService } from '../../services/claudeCodeService'
+import { getClaudeCodeService } from '../../services/serviceProvider'
 
 interface CommandItem {
   id: string
@@ -159,6 +159,7 @@ export const ClaudeCodeCommandCenter: React.FC = () => {
 
     setIsExecuting(true)
     const startTime = Date.now()
+    const claudeCodeService = getClaudeCodeService()
 
     try {
       let result
