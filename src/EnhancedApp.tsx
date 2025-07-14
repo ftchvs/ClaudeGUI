@@ -6,6 +6,10 @@ import EnhancedChatInterface from './components/chat/EnhancedChatInterface'
 import EnhancedTerminal from './components/terminal/EnhancedTerminal'
 import EnhancedFileExplorer from './components/visual/EnhancedFileExplorer'
 import ClaudeCodeCommandCenter from './components/claude-code/ClaudeCodeCommandCenter'
+import DiffViewerPanel from './components/diff/DiffViewerPanel'
+import ProjectAnalysisDashboard from './components/analytics/ProjectAnalysisDashboard'
+import TemplateGallery from './components/templates/TemplateGallery'
+import WorkflowAutomation from './components/workflows/WorkflowAutomation'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
 import { getClaudeCodeService, isElectronEnvironment, type ServiceStatus } from './services/serviceProvider'
@@ -507,55 +511,152 @@ function EnhancedApp() {
               </ErrorBoundary>
             )}
 
-            {activeTab === 'analytics' && (
-              <div style={{
-                background: currentTheme.colors.surface,
-                border: `1px solid ${currentTheme.colors.border}`,
-                borderRadius: currentTheme.borderRadius.lg,
-                padding: currentTheme.spacing[6],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: currentTheme.colors.textSecondary,
-                boxShadow: currentTheme.shadows.md,
-                gridColumn: '1 / -1'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <Icons.ProjectAnalysis size={48} color={currentTheme.colors.primary} />
-                  <h3 style={{ marginTop: currentTheme.spacing[4], fontSize: currentTheme.typography.fontSize.lg, color: currentTheme.colors.text }}>
-                    Analytics Dashboard
-                  </h3>
-                  <p style={{ marginTop: currentTheme.spacing[2] }}>
-                    Project analysis and metrics coming soon
-                  </p>
+            {activeTab === 'diff' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Diff viewer temporarily unavailable</span>
+                  </div>
                 </div>
-              </div>
+              }>
+                <DiffViewerPanel
+                  onFileAccepted={(filename) => {
+                    console.log('File accepted:', filename)
+                    // Here you would integrate with Claude Code CLI to apply the changes
+                  }}
+                  onFileRejected={(filename) => {
+                    console.log('File rejected:', filename)
+                    // Here you would discard the changes
+                  }}
+                  onSessionAccepted={(sessionId) => {
+                    console.log('Session accepted:', sessionId)
+                    // Here you would apply all changes in the session
+                  }}
+                  onSessionRejected={(sessionId) => {
+                    console.log('Session rejected:', sessionId)
+                    // Here you would discard all changes in the session
+                  }}
+                  className="h-full"
+                />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'templates' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Template gallery temporarily unavailable</span>
+                  </div>
+                </div>
+              }>
+                <TemplateGallery
+                  onTemplateGenerate={(template, customizations) => {
+                    console.log('Template generated:', template.name, customizations)
+                    // Add a message to the chat about the template generation
+                    const templateMessage: Message = {
+                      id: Date.now().toString(),
+                      content: `🧩 Generated template: ${template.name} with customizations: ${JSON.stringify(customizations)}`,
+                      role: 'assistant',
+                      timestamp: new Date()
+                    }
+                    setMessages(prev => [...prev, templateMessage])
+                    
+                    // Switch to commands tab to see the generated code
+                    setActiveTab('commands')
+                  }}
+                  className="h-full"
+                />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'analytics' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md,
+                  gridColumn: '1 / -1'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Analytics dashboard temporarily unavailable</span>
+                  </div>
+                </div>
+              }>
+                <ProjectAnalysisDashboard
+                  projectPath="/Users/felipetavareschaves/Developer/ClaudeGUI"
+                  className="h-full w-full"
+                />
+              </ErrorBoundary>
             )}
 
 
-            {activeTab === 'history' && (
-              <div style={{
-                background: currentTheme.colors.surface,
-                border: `1px solid ${currentTheme.colors.border}`,
-                borderRadius: currentTheme.borderRadius.lg,
-                padding: currentTheme.spacing[6],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: currentTheme.colors.textSecondary,
-                boxShadow: currentTheme.shadows.md,
-                gridColumn: '1 / -1'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <Icons.Chat size={48} color={currentTheme.colors.primary} />
-                  <h3 style={{ marginTop: currentTheme.spacing[4], fontSize: currentTheme.typography.fontSize.lg, color: currentTheme.colors.text }}>
-                    Conversation History
-                  </h3>
-                  <p style={{ marginTop: currentTheme.spacing[2] }}>
-                    Previous conversations and session history
-                  </p>
+            {activeTab === 'workflows' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md,
+                  gridColumn: '1 / -1'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Workflow automation temporarily unavailable</span>
+                  </div>
                 </div>
-              </div>
+              }>
+                <WorkflowAutomation
+                  onWorkflowComplete={(workflow, results) => {
+                    console.log('Workflow completed:', workflow.name, results)
+                    // Add a message to the chat about the workflow completion
+                    const workflowMessage: Message = {
+                      id: Date.now().toString(),
+                      content: `🔄 Workflow "${workflow.name}" completed successfully with ${results.length} steps executed.`,
+                      role: 'assistant',
+                      timestamp: new Date()
+                    }
+                    setMessages(prev => [...prev, workflowMessage])
+                    
+                    // Show notification or switch to results view
+                    setActiveTab('chat')
+                  }}
+                  className="h-full"
+                />
+              </ErrorBoundary>
             )}
           </main>
 

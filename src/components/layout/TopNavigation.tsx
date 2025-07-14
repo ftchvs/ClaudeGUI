@@ -22,9 +22,11 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   const tabs = [
     { id: 'commands', label: 'Commands', icon: '⚡' },
     { id: 'files', label: 'Files', icon: '📁' },
+    { id: 'templates', label: 'Templates', icon: '🧩' },
+    { id: 'diff', label: 'Changes', icon: '🔄' },
     { id: 'chat', label: 'Chat', icon: '💬' },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'history', label: 'History', icon: '📝' }
+    { id: 'workflows', label: 'Workflows', icon: '🔄' }
   ]
 
   return (
