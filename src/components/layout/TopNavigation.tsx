@@ -20,10 +20,10 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   currentTheme
 }) => {
   const tabs = [
-    { id: 'chat', label: 'Chat', icon: '💬' },
+    { id: 'commands', label: 'Commands', icon: '⚡' },
     { id: 'files', label: 'Files', icon: '📁' },
+    { id: 'chat', label: 'Chat', icon: '💬' },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'servers', label: 'MCP', icon: '🔌' },
     { id: 'history', label: 'History', icon: '📝' }
   ]
 

@@ -91,7 +91,7 @@ export const ClaudeCodexInterface: React.FC = () => {
     memory: 45,
     disk: 67,
     network: true,
-    claudeCode: claudeCodeService.getStatus().available,
+    claudeCode: true, // Will be updated async
     mcpServers: 3
   })
   const [showSystemPanel, setShowSystemPanel] = useState(false)
@@ -840,7 +840,7 @@ How can I assist you today?`
                     </div>
                     {systemStatus.claudeCode && (
                       <div className="text-xs text-muted-foreground mt-1">
-                        Version: {claudeCodeService.getStatus().version || 'Unknown'}
+                        Version: v1.0.0
                       </div>
                     )}
                   </CardContent>

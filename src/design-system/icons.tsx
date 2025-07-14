@@ -446,6 +446,7 @@ export const Icons = {
   // Common UI
   File: FileIcon,
   Folder: FolderIcon,
+  FolderOpen: FolderIcon, // Add alias for now
   Terminal: TerminalIcon,
   Chat: ChatIcon,
   Settings: SettingsIcon,
@@ -455,6 +456,10 @@ export const Icons = {
   Error: ErrorIcon,
   Warning: WarningIcon,
   Info: InfoIcon,
+  Copy: FileIcon, // Add alias for now
+  Download: FileIcon, // Add alias for now  
+  Send: FileIcon, // Add alias for now
+  Attachment: FileIcon, // Add alias for now
   
   // File types
   TypeScript: TypeScriptIcon,

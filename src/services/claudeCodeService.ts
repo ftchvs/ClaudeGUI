@@ -14,11 +14,13 @@ type ServiceEnvironment = 'cli' | 'web' | 'electron' | 'tauri'
 
 interface UniversalClaudeService {
   chat(message: string, options?: ChatOptions): Promise<CLIResponse>
+  createFile(filePath: string, content: string, options?: CreateFileOptions): Promise<CLIResponse>
   editFile(filePath: string, instructions: string, options?: EditOptions): Promise<CLIResponse>
   generateCode(template: string, options?: GenerateOptions): Promise<CLIResponse>
   analyzeProject(path?: string, options?: AnalyzeOptions): Promise<CLIResponse>
   runTests(testPath?: string, options?: TestOptions): Promise<CLIResponse>
   executeTerminalCommand(command: string, options?: ExecOptions): Promise<CLIResponse>
+  performFileOperation(operation: any): Promise<CLIResponse>
   getStatus(): Promise<ServiceStatus>
   setApiKey(apiKey: string): void
   startFileWatching(paths: string[]): void
@@ -31,6 +33,11 @@ interface ChatOptions {
   maxTokens?: number
   conversationHistory?: any[]
   currentDirectory?: string
+}
+
+interface CreateFileOptions {
+  overwrite?: boolean
+  createDirectories?: boolean
 }
 
 interface EditOptions {
@@ -215,6 +222,31 @@ class ClaudeCodeService implements UniversalClaudeService {
   }
 
   /**
+   * Create files
+   */
+  async createFile(filePath: string, content: string, options?: CreateFileOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      // Use CLI to create file
+      const command = `echo '${content.replace(/'/g, "'\\''")}' > '${filePath}'`
+      return await claudeCodeCLI.executeTerminalCommand(command)
+    } else {
+      // Use web service to simulate file creation
+      const result = await webClaudeCodeService.performFileOperation({
+        type: 'write',
+        path: filePath,
+        content: content
+      })
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration
+      }
+    }
+  }
+
+  /**
    * Edit files with Claude
    */
   async editFile(filePath: string, instructions: string, options?: EditOptions): Promise<CLIResponse> {
@@ -309,6 +341,33 @@ Provide analysis of:
       const result = await webClaudeCodeService.executeTerminalCommand(
         `npm test ${testPath || ''} ${options?.coverage ? '--coverage' : ''}`
       )
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration
+      }
+    }
+  }
+
+  /**
+   * Perform file operations
+   */
+  async performFileOperation(operation: any): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      // Use CLI for file operations
+      const commands = {
+        read: `cat '${operation.path}'`,
+        write: `echo '${operation.content?.replace(/'/g, "'\\''")}' > '${operation.path}'`,
+        delete: `rm '${operation.path}'`,
+        create: `touch '${operation.path}'`
+      }
+      
+      const command = commands[operation.type as keyof typeof commands] || commands.read
+      return await claudeCodeCLI.executeTerminalCommand(command)
+    } else {
+      const result = await webClaudeCodeService.performFileOperation(operation)
       
       return {
         success: result.success,

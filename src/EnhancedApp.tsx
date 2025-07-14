@@ -4,6 +4,8 @@ import SettingsPanel from './components/settings/SettingsPanel'
 import KPIDashboard from './components/dashboard/KPIDashboard'
 import EnhancedChatInterface from './components/chat/EnhancedChatInterface'
 import EnhancedTerminal from './components/terminal/EnhancedTerminal'
+import EnhancedFileExplorer from './components/visual/EnhancedFileExplorer'
+import ClaudeCodeCommandCenter from './components/claude-code/ClaudeCodeCommandCenter'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
 import { claudeCodeService, type ServiceStatus } from './services/claudeCodeService'
@@ -46,7 +48,7 @@ function EnhancedApp() {
   // UI State
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
-  const [activeTab, setActiveTab] = useState('chat')
+  const [activeTab, setActiveTab] = useState('commands')
   const [isLoading, setIsLoading] = useState(false)
 
   // Data State
@@ -305,6 +307,29 @@ function EnhancedApp() {
     setActiveTab(tab)
   }
 
+  const handleFileSelect = (file: any) => {
+    // Add selected file to messages as context
+    const fileMessage: Message = {
+      id: Date.now().toString(),
+      content: `📁 Selected file: ${file.name} (${file.path})`,
+      role: 'assistant',
+      timestamp: new Date()
+    }
+    setMessages(prev => [...prev, fileMessage])
+  }
+
+  const handleFileEdit = async (file: any) => {
+    // Request Claude to edit the file
+    const editRequest = `Please help me edit the file: ${file.path}. The file is ${file.type === 'file' ? `a ${file.language} file` : 'a directory'}.`
+    await handleSendMessage(editRequest)
+  }
+
+  const handleClaudeAnalyze = async (file: any) => {
+    // Request Claude to analyze the file
+    const analyzeRequest = `Please analyze the file: ${file.path}. Provide insights about code quality, potential improvements, and best practices. The file is ${file.type === 'file' ? `a ${file.language} file` : 'a directory'}.`
+    await handleSendMessage(analyzeRequest)
+  }
+
   return (
     <ErrorBoundary>
       <div style={{ 
@@ -359,40 +384,126 @@ function EnhancedApp() {
           {/* Main Workspace */}
           <main style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: (activeTab === 'files' || activeTab === 'commands') ? '1fr' : '1fr 1fr',
             gap: currentTheme.spacing[6],
             minHeight: '600px',
             position: 'relative'
           }}>
-            {/* Chat Interface */}
-            <ErrorBoundary fallback={
-              <div style={{
-                background: currentTheme.colors.surface,
-                border: `1px solid ${currentTheme.colors.border}`,
-                borderRadius: currentTheme.borderRadius.lg,
-                padding: currentTheme.spacing[6],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: currentTheme.colors.textSecondary,
-                boxShadow: currentTheme.shadows.md
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
-                  <Icons.Error size={20} color={currentTheme.colors.error} />
-                  <span>Chat interface temporarily unavailable</span>
+            {activeTab === 'commands' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Command center temporarily unavailable</span>
+                  </div>
                 </div>
-              </div>
-            }>
-              <EnhancedChatInterface
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                currentTheme={legacyTheme}
-              />
-            </ErrorBoundary>
+              }>
+                <ClaudeCodeCommandCenter />
+              </ErrorBoundary>
+            )}
 
-            {/* Execution Terminal */}
-            <ErrorBoundary fallback={
+            {activeTab === 'chat' && (
+              <>
+                {/* Chat Interface */}
+                <ErrorBoundary fallback={
+                  <div style={{
+                    background: currentTheme.colors.surface,
+                    border: `1px solid ${currentTheme.colors.border}`,
+                    borderRadius: currentTheme.borderRadius.lg,
+                    padding: currentTheme.spacing[6],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: currentTheme.colors.textSecondary,
+                    boxShadow: currentTheme.shadows.md
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                      <Icons.Error size={20} color={currentTheme.colors.error} />
+                      <span>Chat interface temporarily unavailable</span>
+                    </div>
+                  </div>
+                }>
+                  <EnhancedChatInterface
+                    onCodeGenerate={(code, language, filename) => {
+                      console.log('Code generated:', { code, language, filename })
+                    }}
+                    onCommandExecute={(command) => {
+                      console.log('Command to execute:', command)
+                    }}
+                    onFileSelect={handleFileSelect}
+                  />
+                </ErrorBoundary>
+
+                {/* Execution Terminal */}
+                <ErrorBoundary fallback={
+                  <div style={{
+                    background: currentTheme.colors.surface,
+                    border: `1px solid ${currentTheme.colors.border}`,
+                    borderRadius: currentTheme.borderRadius.lg,
+                    padding: currentTheme.spacing[6],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: currentTheme.colors.textSecondary,
+                    boxShadow: currentTheme.shadows.md
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                      <Icons.Terminal size={20} color={currentTheme.colors.warning} />
+                      <span>Terminal interface temporarily unavailable</span>
+                    </div>
+                  </div>
+                }>
+                  <EnhancedTerminal
+                    executionSteps={executionSteps}
+                    onExecuteCommand={handleExecuteCommand}
+                    currentTheme={legacyTheme}
+                  />
+                </ErrorBoundary>
+              </>
+            )}
+
+            {activeTab === 'files' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Folder size={20} color={currentTheme.colors.warning} />
+                    <span>File explorer temporarily unavailable</span>
+                  </div>
+                </div>
+              }>
+                <EnhancedFileExplorer
+                  rootPath="/Users/felipetavareschaves/Developer/ClaudeGUI"
+                  onFileSelect={handleFileSelect}
+                  onFileEdit={handleFileEdit}
+                  onClaudeAnalyze={handleClaudeAnalyze}
+                  showGitStatus={true}
+                  showClaudeInsights={true}
+                  className="w-full"
+                />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'analytics' && (
               <div style={{
                 background: currentTheme.colors.surface,
                 border: `1px solid ${currentTheme.colors.border}`,
@@ -402,20 +513,46 @@ function EnhancedApp() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: currentTheme.colors.textSecondary,
-                boxShadow: currentTheme.shadows.md
+                boxShadow: currentTheme.shadows.md,
+                gridColumn: '1 / -1'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
-                  <Icons.Terminal size={20} color={currentTheme.colors.warning} />
-                  <span>Terminal interface temporarily unavailable</span>
+                <div style={{ textAlign: 'center' }}>
+                  <Icons.ProjectAnalysis size={48} color={currentTheme.colors.primary} />
+                  <h3 style={{ marginTop: currentTheme.spacing[4], fontSize: currentTheme.typography.fontSize.lg, color: currentTheme.colors.text }}>
+                    Analytics Dashboard
+                  </h3>
+                  <p style={{ marginTop: currentTheme.spacing[2] }}>
+                    Project analysis and metrics coming soon
+                  </p>
                 </div>
               </div>
-            }>
-              <EnhancedTerminal
-                executionSteps={executionSteps}
-                onExecuteCommand={handleExecuteCommand}
-                currentTheme={legacyTheme}
-              />
-            </ErrorBoundary>
+            )}
+
+
+            {activeTab === 'history' && (
+              <div style={{
+                background: currentTheme.colors.surface,
+                border: `1px solid ${currentTheme.colors.border}`,
+                borderRadius: currentTheme.borderRadius.lg,
+                padding: currentTheme.spacing[6],
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: currentTheme.colors.textSecondary,
+                boxShadow: currentTheme.shadows.md,
+                gridColumn: '1 / -1'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <Icons.Chat size={48} color={currentTheme.colors.primary} />
+                  <h3 style={{ marginTop: currentTheme.spacing[4], fontSize: currentTheme.typography.fontSize.lg, color: currentTheme.colors.text }}>
+                    Conversation History
+                  </h3>
+                  <p style={{ marginTop: currentTheme.spacing[2] }}>
+                    Previous conversations and session history
+                  </p>
+                </div>
+              </div>
+            )}
           </main>
 
           {/* Status Footer */}

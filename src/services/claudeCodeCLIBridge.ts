@@ -34,7 +34,7 @@ export class ClaudeCodeCLIBridge {
   private isAvailable: boolean = false
   private cliPath: string = 'claude'
   private currentSession: CLISession | null = null
-  private workingDirectory: string = process.cwd()
+  private workingDirectory: string = typeof process !== 'undefined' && process.cwd ? process.cwd() : '/workspace'
   private fileWatchers: Map<string, any> = new Map()
   private eventListeners: Map<string, Function[]> = new Map()
 
@@ -58,7 +58,7 @@ export class ClaudeCodeCLIBridge {
         this.currentSession = {
           id: this.generateSessionId(),
           workingDirectory: this.workingDirectory,
-          environment: process.env as Record<string, string>,
+          environment: (typeof process !== 'undefined' ? process.env : {}) as Record<string, string>,
           isActive: true
         }
         
@@ -103,7 +103,7 @@ export class ClaudeCodeCLIBridge {
       return new Promise((resolve) => {
         const child = spawn(this.cliPath, args, {
           cwd: this.workingDirectory,
-          env: this.currentSession?.environment || process.env,
+          env: this.currentSession?.environment || (typeof process !== 'undefined' ? process.env : {}),
           stdio: ['pipe', 'pipe', 'pipe']
         })
 
