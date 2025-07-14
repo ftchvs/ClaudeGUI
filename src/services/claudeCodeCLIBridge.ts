@@ -91,10 +91,14 @@ export class ClaudeCodeCLIBridge {
       }
     }
 
+    // Check if we're in browser environment
+    if (typeof window !== 'undefined') {
+      return this.simulateCommand(args, input)
+    }
+
     try {
       // Use dynamic import for Node.js modules (if available)
       const { spawn } = await import('child_process')
-      const { promisify } = await import('util')
       
       return new Promise((resolve) => {
         const child = spawn(this.cliPath, args, {
@@ -358,7 +362,8 @@ export class ClaudeCodeCLIBridge {
       return
     }
 
-    import('chokidar').then(({ default: chokidar }) => {
+    try {
+      import('chokidar').then(({ default: chokidar }) => {
       for (const path of paths) {
         if (!this.fileWatchers.has(path)) {
           const watcher = chokidar.watch(path, {
@@ -374,9 +379,12 @@ export class ClaudeCodeCLIBridge {
           this.fileWatchers.set(path, watcher)
         }
       }
-    }).catch(() => {
-      console.warn('File watching requires chokidar package')
-    })
+      }).catch(() => {
+        console.warn('File watching requires chokidar package')
+      })
+    } catch (error) {
+      console.warn('File watching not available in this environment')
+    }
   }
 
   /**

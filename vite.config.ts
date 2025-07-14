@@ -17,4 +17,15 @@ export default defineConfig({
       ignored: ['**/src-tauri/**'],
     },
   },
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    exclude: ['fsevents']
+  },
+  build: {
+    rollupOptions: {
+      external: ['child_process', 'fs', 'path', 'chokidar', 'fsevents']
+    }
+  }
 })
