@@ -6,7 +6,7 @@ import EnhancedChatInterface from './components/chat/EnhancedChatInterface'
 import EnhancedTerminal from './components/terminal/EnhancedTerminal'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
-import { webClaudeCodeService } from './services/webClaudeCodeService'
+import { claudeCodeService, type ServiceStatus } from './services/claudeCodeService'
 import { useErrorHandler } from './hooks/useErrorHandler'
 import { claudeCodeDark, claudeCodeLight, type PremiumTheme } from './design-system/theme'
 import { Icons } from './design-system/icons'
@@ -72,7 +72,20 @@ function EnhancedApp() {
 
   // Service State
   const [apiKey, setApiKey] = useState('')
-  const [serviceStatus, setServiceStatus] = useState(webClaudeCodeService.getStatus())
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus>({
+    available: false,
+    version: 'Loading...',
+    environment: 'web',
+    capabilities: [],
+    features: {
+      realCLI: false,
+      fileWatching: false,
+      terminalExec: false,
+      projectAnalysis: false,
+      codeGeneration: false
+    },
+    hasApiKey: false
+  })
 
   // Premium theme configuration
   const currentTheme: PremiumTheme = isDarkMode ? claudeCodeDark : claudeCodeLight
@@ -97,7 +110,9 @@ function EnhancedApp() {
     setApiKey(savedApiKey)
     
     // Update service status
-    setServiceStatus(webClaudeCodeService.getStatus())
+    claudeCodeService.getStatus().then(status => {
+      setServiceStatus(status)
+    })
     
     // Load saved theme preference
     const savedTheme = localStorage.getItem('theme_preference')
@@ -148,7 +163,7 @@ function EnhancedApp() {
     try {
       // Send to Claude service with error handling
       const response = await withErrorHandling(
-        () => webClaudeCodeService.chat(message, {
+        () => claudeCodeService.chat(message, {
           conversationHistory: messages.slice(-10), // Last 10 messages for context
           currentDirectory: '/workspace/ClaudeGUI'
         }),
@@ -235,7 +250,7 @@ function EnhancedApp() {
     try {
       // Execute command via service with error handling
       const response = await withErrorHandling(
-        () => webClaudeCodeService.executeTerminalCommand(command),
+        () => claudeCodeService.executeTerminalCommand(command),
         'api'
       )()
 
@@ -272,8 +287,10 @@ function EnhancedApp() {
 
   const handleApiKeyChange = (newApiKey: string) => {
     setApiKey(newApiKey)
-    webClaudeCodeService.setApiKey(newApiKey)
-    setServiceStatus(webClaudeCodeService.getStatus())
+    claudeCodeService.setApiKey(newApiKey)
+    claudeCodeService.getStatus().then(status => {
+      setServiceStatus(status)
+    })
   }
 
   const handleThemeToggle = () => {

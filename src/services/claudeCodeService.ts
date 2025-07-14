@@ -1,442 +1,474 @@
-import { spawn, ChildProcess } from 'child_process'
+/**
+ * Claude Code Service - Universal Interface
+ * 
+ * Automatically detects environment and uses appropriate service:
+ * - Desktop/Electron: Real Claude Code CLI integration
+ * - Web Browser: Anthropic API with simulated CLI features
+ * - Tauri: Native CLI bridge (future)
+ */
 
-interface ClaudeCodeResponse {
-  success: boolean
-  output: string
-  error?: string
+import { claudeCodeCLI, type CLIResponse, type CLISession } from './claudeCodeCLIBridge'
+import { webClaudeCodeService } from './webClaudeCodeService'
+
+type ServiceEnvironment = 'cli' | 'web' | 'electron' | 'tauri'
+
+interface UniversalClaudeService {
+  chat(message: string, options?: ChatOptions): Promise<CLIResponse>
+  editFile(filePath: string, instructions: string, options?: EditOptions): Promise<CLIResponse>
+  generateCode(template: string, options?: GenerateOptions): Promise<CLIResponse>
+  analyzeProject(path?: string, options?: AnalyzeOptions): Promise<CLIResponse>
+  runTests(testPath?: string, options?: TestOptions): Promise<CLIResponse>
+  executeTerminalCommand(command: string, options?: ExecOptions): Promise<CLIResponse>
+  getStatus(): Promise<ServiceStatus>
+  setApiKey(apiKey: string): void
+  startFileWatching(paths: string[]): void
+  stopFileWatching(path?: string): void
+}
+
+interface ChatOptions {
   files?: string[]
-  duration: number
+  stream?: boolean
+  maxTokens?: number
+  conversationHistory?: any[]
+  currentDirectory?: string
 }
 
-interface FileOperation {
-  type: 'read' | 'write' | 'create' | 'delete' | 'list'
-  path: string
-  content?: string
+interface EditOptions {
+  backup?: boolean
+  interactive?: boolean
 }
 
-interface CommandExecution {
-  command: string
-  args?: string[]
-  cwd?: string
+interface GenerateOptions {
+  language?: string
+  framework?: string
+  output?: string
+  parameters?: Record<string, string>
 }
 
-export class ClaudeCodeService {
-  private isAvailable: boolean = false
-  private version: string = ''
+interface AnalyzeOptions {
+  depth?: number
+  include?: string[]
+  exclude?: string[]
+  format?: 'json' | 'markdown' | 'text'
+}
+
+interface TestOptions {
+  watch?: boolean
+  coverage?: boolean
+  parallel?: boolean
+}
+
+interface ExecOptions {
+  shell?: string
+  env?: Record<string, string>
+  timeout?: number
+}
+
+interface ServiceStatus {
+  environment: ServiceEnvironment
+  available: boolean
+  version?: string
+  hasApiKey?: boolean
+  session?: CLISession
+  capabilities: string[]
+  features: {
+    realCLI: boolean
+    fileWatching: boolean
+    terminalExec: boolean
+    projectAnalysis: boolean
+    codeGeneration: boolean
+  }
+}
+
+class ClaudeCodeService implements UniversalClaudeService {
+  private environment: ServiceEnvironment
+  private isCliAvailable: boolean = false
+  private eventListeners: Map<string, Function[]> = new Map()
 
   constructor() {
-    this.checkAvailability()
+    this.environment = this.detectEnvironment()
+    this.initializeService()
   }
 
   /**
-   * Check if Claude Code CLI is available
+   * Detect the current environment
    */
-  private async checkAvailability(): Promise<void> {
+  private detectEnvironment(): ServiceEnvironment {
+    // Check for Tauri
+    if (typeof window !== 'undefined' && (window as any).__TAURI__) {
+      return 'tauri'
+    }
+    
+    // Check for Electron
+    if (typeof window !== 'undefined' && (window as any).require) {
+      return 'electron'
+    }
+    
+    // Check for Node.js/CLI environment
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      return 'cli'
+    }
+    
+    // Default to web
+    return 'web'
+  }
+
+  /**
+   * Initialize the appropriate service
+   */
+  private async initializeService(): Promise<void> {
+    console.log(`🔧 Initializing Claude Code Service for ${this.environment} environment`)
+    
+    switch (this.environment) {
+      case 'cli':
+      case 'electron':
+        await this.initializeCLIService()
+        break
+        
+      case 'tauri':
+        await this.initializeTauriService()
+        break
+        
+      case 'web':
+      default:
+        await this.initializeWebService()
+        break
+    }
+  }
+
+  /**
+   * Initialize CLI service
+   */
+  private async initializeCLIService(): Promise<void> {
     try {
-      const result = await this.executeCommand({
-        command: 'claude-code',
-        args: ['--version']
-      })
+      const status = await claudeCodeCLI.getStatus()
+      this.isCliAvailable = status.available
       
-      if (result.success) {
-        this.isAvailable = true
-        this.version = result.output.trim()
-        console.log(`Claude Code CLI available: ${this.version}`)
+      if (this.isCliAvailable) {
+        console.log('✅ Real Claude Code CLI integration active')
+        
+        // Set up event forwarding
+        claudeCodeCLI.on('fileChanged', (event) => this.emit('fileChanged', event))
+        claudeCodeCLI.on('output', (event) => this.emit('output', event))
+        claudeCodeCLI.on('ready', (event) => this.emit('ready', event))
+        claudeCodeCLI.on('error', (event) => this.emit('error', event))
+      } else {
+        console.warn('⚠️ Claude Code CLI not available, falling back to web service')
       }
     } catch (error) {
-      console.warn('Claude Code CLI not available:', error)
-      this.isAvailable = false
+      console.warn('❌ Failed to initialize CLI service:', error)
+      this.isCliAvailable = false
     }
   }
 
   /**
-   * Execute a command using Claude Code CLI
+   * Initialize Tauri service (future implementation)
    */
-  private async executeCommand(execution: CommandExecution): Promise<ClaudeCodeResponse> {
-    const startTime = Date.now()
-    
-    return new Promise((resolve) => {
-      try {
-        const childProcess = spawn(execution.command, execution.args || [], {
-          cwd: execution.cwd || '/workspace',
-          stdio: ['pipe', 'pipe', 'pipe']
-        })
-
-        let stdout = ''
-        let stderr = ''
-
-        childProcess.stdout?.on('data', (data) => {
-          stdout += data.toString()
-        })
-
-        childProcess.stderr?.on('data', (data) => {
-          stderr += data.toString()
-        })
-
-        childProcess.on('close', (code) => {
-          const duration = Date.now() - startTime
-          
-          resolve({
-            success: code === 0,
-            output: stdout,
-            error: stderr || undefined,
-            duration
-          })
-        })
-
-        childProcess.on('error', (error) => {
-          const duration = Date.now() - startTime
-          
-          resolve({
-            success: false,
-            output: '',
-            error: error.message,
-            duration
-          })
-        })
-
-        // Timeout after 30 seconds
-        setTimeout(() => {
-          childProcess.kill()
-          resolve({
-            success: false,
-            output: '',
-            error: 'Command timeout',
-            duration: 30000
-          })
-        }, 30000)
-
-      } catch (error) {
-        resolve({
-          success: false,
-          output: '',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          duration: Date.now() - startTime
-        })
-      }
-    })
+  private async initializeTauriService(): Promise<void> {
+    console.log('🦀 Tauri environment detected - implementing native bridge...')
+    // TODO: Implement Tauri-specific CLI bridge
+    this.isCliAvailable = false
   }
 
   /**
-   * Execute file operations using Claude Code
+   * Initialize web service
    */
-  async performFileOperation(operation: FileOperation): Promise<ClaudeCodeResponse> {
-    if (!this.isAvailable) {
-      return this.simulateFileOperation(operation)
-    }
-
-    const args = []
-    
-    switch (operation.type) {
-      case 'read':
-        args.push('read', operation.path)
-        break
-      case 'write':
-        args.push('edit', operation.path)
-        break
-      case 'create':
-        args.push('write', operation.path)
-        break
-      case 'delete':
-        args.push('delete', operation.path)
-        break
-      case 'list':
-        args.push('ls', operation.path || '.')
-        break
-    }
-
-    const result = await this.executeCommand({
-      command: 'claude-code',
-      args
-    })
-
-    return result
+  private async initializeWebService(): Promise<void> {
+    console.log('🌐 Web environment - using Anthropic API service')
+    this.isCliAvailable = false
   }
 
   /**
-   * Chat with Claude Code CLI
+   * Get the appropriate service instance
    */
-  async chat(message: string, context?: {
-    files?: string[]
-    currentDirectory?: string
-  }): Promise<ClaudeCodeResponse> {
-    if (!this.isAvailable) {
-      return this.simulateChat(message)
-    }
-
-    const args = ['chat']
-    
-    if (context?.files?.length) {
-      args.push('--files', ...context.files)
-    }
-    
-    if (context?.currentDirectory) {
-      args.push('--cwd', context.currentDirectory)
-    }
-    
-    args.push(message)
-
-    return await this.executeCommand({
-      command: 'claude-code',
-      args,
-      cwd: context?.currentDirectory
-    })
+  private getActiveService() {
+    return this.isCliAvailable ? claudeCodeCLI : webClaudeCodeService
   }
 
   /**
-   * Execute terminal commands through Claude Code
+   * Chat with Claude
    */
-  async executeTerminalCommand(command: string, cwd?: string): Promise<ClaudeCodeResponse> {
-    if (!this.isAvailable) {
-      return this.simulateTerminalCommand(command)
-    }
-
-    return await this.executeCommand({
-      command: 'claude-code',
-      args: ['exec', command],
-      cwd
-    })
-  }
-
-  /**
-   * Get project structure and analysis
-   */
-  async analyzeProject(path: string = '.'): Promise<ClaudeCodeResponse> {
-    if (!this.isAvailable) {
-      return this.simulateProjectAnalysis()
-    }
-
-    return await this.executeCommand({
-      command: 'claude-code',
-      args: ['analyze', path]
-    })
-  }
-
-  /**
-   * Simulate file operation when Claude Code CLI is not available
-   */
-  private async simulateFileOperation(operation: FileOperation): Promise<ClaudeCodeResponse> {
-    const startTime = Date.now()
-    
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
-    
-    const duration = Date.now() - startTime
-    
-    switch (operation.type) {
-      case 'read':
-        return {
-          success: true,
-          output: `// Content of ${operation.path}\n// This is simulated content\nexport const example = "Hello from ${operation.path}"`,
-          duration
-        }
-      
-      case 'write':
-      case 'create':
-        return {
-          success: true,
-          output: `File ${operation.path} ${operation.type === 'create' ? 'created' : 'updated'} successfully`,
-          duration
-        }
-      
-      case 'delete':
-        return {
-          success: true,
-          output: `File ${operation.path} deleted successfully`,
-          duration
-        }
-      
-      case 'list':
-        return {
-          success: true,
-          output: 'src/\n  components/\n    App.tsx\n    Button.tsx\n  utils.ts\npackage.json\nREADME.md',
-          files: ['src/', 'package.json', 'README.md'],
-          duration
-        }
-      
-      default:
-        return {
-          success: false,
-          output: '',
-          error: 'Unknown operation type',
-          duration
-        }
-    }
-  }
-
-  /**
-   * Simulate chat when Claude Code CLI is not available
-   */
-  private async simulateChat(message: string): Promise<ClaudeCodeResponse> {
-    const startTime = Date.now()
-    
-    // Simulate thinking time
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
-    
-    const duration = Date.now() - startTime
-    
-    // Generate contextual responses
-    let response = ''
-    
-    if (message.toLowerCase().includes('create') || message.toLowerCase().includes('file')) {
-      response = `I'll help you create that file! Here's what I suggest:
-
-\`\`\`typescript
-// Example implementation
-export const NewComponent = () => {
-  return (
-    <div>
-      <h1>New Component</h1>
-      <p>Created based on your request: "${message}"</p>
-    </div>
-  )
-}
-
-export default NewComponent
-\`\`\`
-
-Would you like me to create this file or modify it further?`
-    } else if (message.toLowerCase().includes('debug') || message.toLowerCase().includes('error')) {
-      response = `I'll help you debug the issue. Let me analyze the problem:
-
-1. **Error Analysis**: Looking at the error message...
-2. **Root Cause**: The issue seems to be...
-3. **Solution**: Here's how to fix it...
-
-\`\`\`typescript
-// Fixed code
-const solution = () => {
-  // Your corrected implementation
-  return "Problem solved!"
-}
-\`\`\`
-
-Let me know if you need more help!`
-    } else if (message.toLowerCase().includes('explain') || message.toLowerCase().includes('how')) {
-      response = `I'll explain that concept for you:
-
-**Key Points:**
-• Understanding the fundamentals
-• Best practices to follow
-• Common pitfalls to avoid
-
-**Example:**
-\`\`\`typescript
-// Demonstration code
-const example = () => {
-  // This shows how it works
-  return "Educational example"
-}
-\`\`\`
-
-Does this help clarify things?`
+  async chat(message: string, options?: ChatOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.chat(message, {
+        files: options?.files,
+        stream: options?.stream,
+        maxTokens: options?.maxTokens
+      })
     } else {
-      response = `I understand you want help with: "${message}"
-
-I can assist you with:
-• **Code Generation**: Creating new functions and components
-• **File Operations**: Reading, writing, and organizing files
-• **Debugging**: Finding and fixing issues
-• **Optimization**: Improving performance and code quality
-• **Architecture**: Planning project structure
-
-What specific aspect would you like me to focus on?`
-    }
-
-    return {
-      success: true,
-      output: response,
-      duration
-    }
-  }
-
-  /**
-   * Simulate terminal command execution
-   */
-  private async simulateTerminalCommand(command: string): Promise<ClaudeCodeResponse> {
-    const startTime = Date.now()
-    
-    // Simulate execution time
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200))
-    
-    const duration = Date.now() - startTime
-    
-    // Generate realistic outputs for common commands
-    const outputs: Record<string, string> = {
-      'npm install': '✓ Dependencies installed successfully\n\nfound 0 vulnerabilities',
-      'npm run build': '✓ Build completed successfully\n\nDist: 2.4MB\nTime: 3.2s',
-      'npm test': '✓ All tests passed\n\n Tests:    12 passed\n Time:     2.1s',
-      'git status': 'On branch main\nYour branch is up to date with \'origin/main\'.\n\nnothing to commit, working tree clean',
-      'git add .': 'Files staged for commit',
-      'ls': 'src/\npackage.json\nREADME.md\nnode_modules/',
-      'pwd': '/Users/felipetavareschaves/Developer/ClaudeGUI'
-    }
-
-    const output = outputs[command] || `✓ Command executed: ${command}\nOperation completed successfully`
-
-    return {
-      success: true,
-      output,
-      duration
+      // Adapt web service to CLI interface
+      const result = await webClaudeCodeService.chat(message, {
+        files: options?.files,
+        currentDirectory: options?.currentDirectory,
+        conversationHistory: options?.conversationHistory
+      })
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration,
+        tokens: result.tokens,
+        cost: result.cost
+      }
     }
   }
 
   /**
-   * Simulate project analysis
+   * Edit files with Claude
    */
-  private async simulateProjectAnalysis(): Promise<ClaudeCodeResponse> {
-    const startTime = Date.now()
-    
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    const duration = Date.now() - startTime
-    
-    const analysis = `# Project Analysis
-
-## Overview
-- **Type**: React TypeScript Application
-- **Framework**: Vite + React 18
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-
-## Architecture
-- **Components**: 12 React components
-- **Stores**: Zustand state management
-- **UI Library**: Radix UI primitives
-
-## Code Quality
-- **TypeScript Coverage**: 98%
-- **ESLint Compliance**: ✓ Clean
-- **Test Coverage**: 78%
-
-## Recommendations
-1. Add more unit tests for utilities
-2. Implement error boundaries
-3. Optimize bundle size with code splitting
-4. Add accessibility improvements
-
-## Dependencies
-- **Total**: 34 packages
-- **Security**: No vulnerabilities
-- **Updates**: 3 minor updates available`
-
-    return {
-      success: true,
-      output: analysis,
-      duration
+  async editFile(filePath: string, instructions: string, options?: EditOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.editFile(filePath, instructions, options)
+    } else {
+      // Simulate file editing in web environment
+      const result = await webClaudeCodeService.performFileOperation({
+        type: 'write',
+        path: filePath,
+        content: `// File edited with instructions: ${instructions}`
+      })
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration
+      }
     }
   }
 
   /**
-   * Check if Claude Code CLI is available
+   * Generate code with Claude
    */
-  getStatus() {
-    return {
-      available: this.isAvailable,
-      version: this.version
+  async generateCode(template: string, options?: GenerateOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.generateCode(template, options)
+    } else {
+      // Use web service to simulate code generation
+      const prompt = `Generate ${template} code with the following options:
+${options?.language ? `Language: ${options.language}` : ''}
+${options?.framework ? `Framework: ${options.framework}` : ''}
+${options?.parameters ? `Parameters: ${JSON.stringify(options.parameters)}` : ''}
+
+Please provide a complete, working implementation.`
+
+      const result = await webClaudeCodeService.chat(prompt)
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration,
+        tokens: result.tokens,
+        cost: result.cost
+      }
     }
+  }
+
+  /**
+   * Analyze project with Claude
+   */
+  async analyzeProject(path?: string, options?: AnalyzeOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.analyzeProject(path, options)
+    } else {
+      // Use web service for project analysis
+      const prompt = `Analyze the project structure and provide insights:
+${path ? `Focus on: ${path}` : 'Analyze entire project'}
+${options?.include ? `Include: ${options.include.join(', ')}` : ''}
+${options?.exclude ? `Exclude: ${options.exclude.join(', ')}` : ''}
+
+Provide analysis of:
+1. Code quality and architecture
+2. Potential improvements
+3. Security considerations
+4. Performance optimizations
+5. Best practices recommendations`
+
+      const result = await webClaudeCodeService.chat(prompt)
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration,
+        tokens: result.tokens,
+        cost: result.cost
+      }
+    }
+  }
+
+  /**
+   * Run tests with Claude
+   */
+  async runTests(testPath?: string, options?: TestOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.runTests(testPath, options)
+    } else {
+      // Simulate test execution in web environment
+      const result = await webClaudeCodeService.executeTerminalCommand(
+        `npm test ${testPath || ''} ${options?.coverage ? '--coverage' : ''}`
+      )
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration
+      }
+    }
+  }
+
+  /**
+   * Execute terminal commands
+   */
+  async executeTerminalCommand(command: string, options?: ExecOptions): Promise<CLIResponse> {
+    if (this.isCliAvailable) {
+      return await claudeCodeCLI.executeTerminalCommand(command, options)
+    } else {
+      const result = await webClaudeCodeService.executeTerminalCommand(command)
+      
+      return {
+        success: result.success,
+        output: result.output,
+        error: result.error,
+        duration: result.duration
+      }
+    }
+  }
+
+  /**
+   * Get comprehensive service status
+   */
+  async getStatus(): Promise<ServiceStatus> {
+    if (this.isCliAvailable) {
+      const cliStatus = await claudeCodeCLI.getStatus()
+      return {
+        environment: this.environment,
+        available: cliStatus.available,
+        version: cliStatus.version,
+        session: cliStatus.session,
+        capabilities: cliStatus.capabilities,
+        features: {
+          realCLI: true,
+          fileWatching: this.environment !== 'web',
+          terminalExec: true,
+          projectAnalysis: true,
+          codeGeneration: true
+        }
+      }
+    } else {
+      const webStatus = webClaudeCodeService.getStatus()
+      return {
+        environment: this.environment,
+        available: webStatus.available,
+        version: webStatus.version,
+        hasApiKey: webStatus.hasApiKey,
+        capabilities: ['chat', 'analyze', 'generate', 'simulate'],
+        features: {
+          realCLI: false,
+          fileWatching: false,
+          terminalExec: false,
+          projectAnalysis: true,
+          codeGeneration: true
+        }
+      }
+    }
+  }
+
+  /**
+   * Set API key (for web service)
+   */
+  setApiKey(apiKey: string): void {
+    webClaudeCodeService.setApiKey(apiKey)
+  }
+
+  /**
+   * Start file watching
+   */
+  startFileWatching(paths: string[]): void {
+    if (this.isCliAvailable) {
+      claudeCodeCLI.startFileWatching(paths)
+    } else {
+      console.warn('🌐 File watching not available in web environment')
+    }
+  }
+
+  /**
+   * Stop file watching
+   */
+  stopFileWatching(path?: string): void {
+    if (this.isCliAvailable) {
+      claudeCodeCLI.stopFileWatching(path)
+    }
+  }
+
+  /**
+   * Check if real CLI is available
+   */
+  isRealCLI(): boolean {
+    return this.isCliAvailable
+  }
+
+  /**
+   * Get current environment
+   */
+  getEnvironment(): ServiceEnvironment {
+    return this.environment
+  }
+
+  /**
+   * Event emitter functionality
+   */
+  on(event: string, callback: Function): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, [])
+    }
+    this.eventListeners.get(event)!.push(callback)
+  }
+
+  off(event: string, callback: Function): void {
+    const listeners = this.eventListeners.get(event)
+    if (listeners) {
+      const index = listeners.indexOf(callback)
+      if (index > -1) {
+        listeners.splice(index, 1)
+      }
+    }
+  }
+
+  private emit(event: string, data: any): void {
+    const listeners = this.eventListeners.get(event)
+    if (listeners) {
+      listeners.forEach(callback => callback(data))
+    }
+  }
+
+  /**
+   * Cleanup resources
+   */
+  destroy(): void {
+    if (this.isCliAvailable) {
+      claudeCodeCLI.destroy()
+    }
+    this.eventListeners.clear()
   }
 }
 
 // Singleton instance
 export const claudeCodeService = new ClaudeCodeService()
+
+// Export types and interfaces
+export type { 
+  UniversalClaudeService, 
+  ServiceEnvironment, 
+  ServiceStatus,
+  ChatOptions,
+  EditOptions, 
+  GenerateOptions,
+  AnalyzeOptions,
+  TestOptions,
+  ExecOptions
+}
+
+export default claudeCodeService
