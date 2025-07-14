@@ -4,7 +4,10 @@ import SettingsPanel from './components/settings/SettingsPanel'
 import KPIDashboard from './components/dashboard/KPIDashboard'
 import EnhancedChatInterface from './components/chat/EnhancedChatInterface'
 import EnhancedTerminal from './components/terminal/EnhancedTerminal'
+import ErrorBoundary from './components/error/ErrorBoundary'
+import ErrorToast from './components/error/ErrorToast'
 import { webClaudeCodeService } from './services/webClaudeCodeService'
+import { useErrorHandler } from './hooks/useErrorHandler'
 
 interface Message {
   id: string
@@ -35,6 +38,9 @@ interface KPIData {
 }
 
 function EnhancedApp() {
+  // Error handling
+  const { currentError, clearCurrentError, handleApiError, withErrorHandling } = useErrorHandler()
+
   // UI State
   const [isDarkMode, setIsDarkMode] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
@@ -150,11 +156,18 @@ function EnhancedApp() {
     setExecutionSteps(prev => [...prev, executionStep])
 
     try {
-      // Send to Claude service
-      const response = await webClaudeCodeService.chat(message, {
-        conversationHistory: messages.slice(-10), // Last 10 messages for context
-        currentDirectory: '/workspace/ClaudeGUI'
-      })
+      // Send to Claude service with error handling
+      const response = await withErrorHandling(
+        () => webClaudeCodeService.chat(message, {
+          conversationHistory: messages.slice(-10), // Last 10 messages for context
+          currentDirectory: '/workspace/ClaudeGUI'
+        }),
+        'api'
+      )()
+
+      if (!response) {
+        throw new Error('Failed to get response from Claude service')
+      }
 
       // Create assistant message
       const assistantMessage: Message = {
@@ -192,7 +205,7 @@ function EnhancedApp() {
       ))
 
     } catch (error) {
-      console.error('Error sending message:', error)
+      handleApiError(error)
       
       // Update execution step with error
       setExecutionSteps(prev => prev.map(step => 
@@ -208,7 +221,7 @@ function EnhancedApp() {
       // Create error message
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        content: `I apologize, but I encountered an error while processing your request: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or check your API configuration.`,
+        content: `I apologize, but I encountered an error while processing your request. Please check your API configuration and try again.`,
         role: 'assistant',
         timestamp: new Date()
       }
@@ -230,8 +243,15 @@ function EnhancedApp() {
     setExecutionSteps(prev => [...prev, executionStep])
 
     try {
-      // Execute command via service
-      const response = await webClaudeCodeService.executeTerminalCommand(command)
+      // Execute command via service with error handling
+      const response = await withErrorHandling(
+        () => webClaudeCodeService.executeTerminalCommand(command),
+        'api'
+      )()
+
+      if (!response) {
+        throw new Error('Failed to execute command')
+      }
 
       // Update execution step
       setExecutionSteps(prev => prev.map(step => 
@@ -246,7 +266,7 @@ function EnhancedApp() {
       ))
 
     } catch (error) {
-      console.error('Error executing command:', error)
+      handleApiError(error)
       
       setExecutionSteps(prev => prev.map(step => 
         step.id === executionStep.id 
@@ -279,13 +299,14 @@ function EnhancedApp() {
   }
 
   return (
-    <div style={{ 
-      background: currentTheme.bg, 
-      color: currentTheme.text, 
-      minHeight: '100vh',
-      fontFamily: '"Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
-      transition: 'all 0.3s ease'
-    }}>
+    <ErrorBoundary>
+      <div style={{ 
+        background: currentTheme.bg, 
+        color: currentTheme.text, 
+        minHeight: '100vh',
+        fontFamily: '"Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
+        transition: 'all 0.3s ease'
+      }}>
       {/* Top Navigation */}
       <TopNavigation
         isDarkMode={isDarkMode}
@@ -330,19 +351,49 @@ function EnhancedApp() {
             minHeight: '600px'
           }}>
             {/* Chat Interface */}
-            <EnhancedChatInterface
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              isLoading={isLoading}
-              currentTheme={currentTheme}
-            />
+            <ErrorBoundary fallback={
+              <div style={{
+                background: currentTheme.surface,
+                border: `1px solid ${currentTheme.border}`,
+                borderRadius: '12px',
+                padding: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: currentTheme.textSecondary
+              }}>
+                Chat interface temporarily unavailable
+              </div>
+            }>
+              <EnhancedChatInterface
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                isLoading={isLoading}
+                currentTheme={currentTheme}
+              />
+            </ErrorBoundary>
 
             {/* Execution Terminal */}
-            <EnhancedTerminal
-              executionSteps={executionSteps}
-              onExecuteCommand={handleExecuteCommand}
-              currentTheme={currentTheme}
-            />
+            <ErrorBoundary fallback={
+              <div style={{
+                background: currentTheme.surface,
+                border: `1px solid ${currentTheme.border}`,
+                borderRadius: '12px',
+                padding: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: currentTheme.textSecondary
+              }}>
+                Terminal interface temporarily unavailable
+              </div>
+            }>
+              <EnhancedTerminal
+                executionSteps={executionSteps}
+                onExecuteCommand={handleExecuteCommand}
+                currentTheme={currentTheme}
+              />
+            </ErrorBoundary>
           </main>
 
           {/* Status Footer */}
@@ -384,7 +435,14 @@ function EnhancedApp() {
           </footer>
         </div>
       </div>
+
+      {/* Error Toast */}
+      <ErrorToast
+        error={currentError}
+        onDismiss={clearCurrentError}
+      />
     </div>
+    </ErrorBoundary>
   )
 }
 
