@@ -11,6 +11,7 @@ import ProjectAnalysisDashboard from './components/analytics/ProjectAnalysisDash
 import TemplateGallery from './components/templates/TemplateGallery'
 import WorkflowAutomation from './components/workflows/WorkflowAutomation'
 import OnboardingOrchestrator from './components/onboarding/OnboardingOrchestrator'
+import ProjectManager from './components/projects/ProjectManager'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
 import { getClaudeCodeService, isElectronEnvironment, type ServiceStatus } from './services/serviceProvider'
@@ -409,7 +410,7 @@ function EnhancedApp() {
           {/* Main Workspace */}
           <main style={{
             display: 'grid',
-            gridTemplateColumns: (activeTab === 'files' || activeTab === 'commands') ? '1fr' : '1fr 1fr',
+            gridTemplateColumns: (activeTab === 'files' || activeTab === 'commands' || activeTab === 'projects') ? '1fr' : '1fr 1fr',
             gap: currentTheme.spacing[6],
             minHeight: '600px',
             position: 'relative'
@@ -434,6 +435,41 @@ function EnhancedApp() {
                 </div>
               }>
                 <ClaudeCodeCommandCenter />
+              </ErrorBoundary>
+            )}
+
+            {activeTab === 'projects' && (
+              <ErrorBoundary fallback={
+                <div style={{
+                  background: currentTheme.colors.surface,
+                  border: `1px solid ${currentTheme.colors.border}`,
+                  borderRadius: currentTheme.borderRadius.lg,
+                  padding: currentTheme.spacing[6],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentTheme.colors.textSecondary,
+                  boxShadow: currentTheme.shadows.md,
+                  gridColumn: '1 / -1'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                    <Icons.Error size={20} color={currentTheme.colors.error} />
+                    <span>Project manager temporarily unavailable</span>
+                  </div>
+                </div>
+              }>
+                <ProjectManager
+                  className="h-full w-full"
+                  onProjectSelect={(project) => {
+                    console.log('Selected project:', project)
+                    // Could show project details or switch context
+                  }}
+                  onSessionStart={(project, session) => {
+                    console.log('Starting session for project:', project, session)
+                    // Could switch to commands tab and start session
+                    setActiveTab('commands')
+                  }}
+                />
               </ErrorBoundary>
             )}
 
