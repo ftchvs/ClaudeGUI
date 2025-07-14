@@ -10,6 +10,7 @@ import DiffViewerPanel from './components/diff/DiffViewerPanel'
 import ProjectAnalysisDashboard from './components/analytics/ProjectAnalysisDashboard'
 import TemplateGallery from './components/templates/TemplateGallery'
 import WorkflowAutomation from './components/workflows/WorkflowAutomation'
+import OnboardingOrchestrator from './components/onboarding/OnboardingOrchestrator'
 import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
 import { getClaudeCodeService, isElectronEnvironment, type ServiceStatus } from './services/serviceProvider'
@@ -54,6 +55,7 @@ function EnhancedApp() {
   const [showSettings, setShowSettings] = useState(false)
   const [activeTab, setActiveTab] = useState('commands')
   const [isLoading, setIsLoading] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Data State
   const [messages, setMessages] = useState<Message[]>([
@@ -336,6 +338,21 @@ function EnhancedApp() {
     // Request Claude to analyze the file
     const analyzeRequest = `Please analyze the file: ${file.path}. Provide insights about code quality, potential improvements, and best practices. The file is ${file.type === 'file' ? `a ${file.language} file` : 'a directory'}.`
     await handleSendMessage(analyzeRequest)
+  }
+
+  const handleOnboardingComplete = (result: any) => {
+    console.log('Onboarding completed:', result)
+    setShowOnboarding(false)
+    
+    // Apply any settings from the onboarding
+    if (result.setupConfig) {
+      if (result.setupConfig.theme) {
+        setIsDarkMode(result.setupConfig.theme === 'dark')
+      }
+      if (result.setupConfig.apiKey) {
+        handleApiKeyChange(result.setupConfig.apiKey)
+      }
+    }
   }
 
   return (
@@ -716,6 +733,12 @@ function EnhancedApp() {
       <ErrorToast
         error={currentError}
         onDismiss={clearCurrentError}
+      />
+
+      {/* Onboarding Experience */}
+      <OnboardingOrchestrator
+        onComplete={handleOnboardingComplete}
+        forceShow={false} // Set to true for testing
       />
     </div>
     </ErrorBoundary>

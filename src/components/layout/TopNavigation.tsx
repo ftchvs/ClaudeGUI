@@ -71,6 +71,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           {tabs.map(tab => (
             <button
               key={tab.id}
+              data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
               style={{
                 background: activeTab === tab.id ? currentTheme.surface : 'transparent',
@@ -147,6 +148,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
         {/* Settings */}
         <button 
           onClick={onSettingsToggle}
+          aria-label="Settings"
           style={{
             background: showSettings ? currentTheme.surface : 'transparent',
             border: `1px solid ${currentTheme.border}`,
