@@ -8,6 +8,8 @@ import ErrorBoundary from './components/error/ErrorBoundary'
 import ErrorToast from './components/error/ErrorToast'
 import { webClaudeCodeService } from './services/webClaudeCodeService'
 import { useErrorHandler } from './hooks/useErrorHandler'
+import { claudeCodeDark, claudeCodeLight, type PremiumTheme } from './design-system/theme'
+import { Icons } from './design-system/icons'
 
 interface Message {
   id: string
@@ -72,33 +74,21 @@ function EnhancedApp() {
   const [apiKey, setApiKey] = useState('')
   const [serviceStatus, setServiceStatus] = useState(webClaudeCodeService.getStatus())
 
-  // Theme configuration
-  const theme = {
-    dark: {
-      bg: '#000000',
-      surface: '#1a1a1a',
-      border: '#333333',
-      text: '#ffffff',
-      textSecondary: '#b3b3b3',
-      accent: '#10a37f',
-      button: '#ffffff',
-      buttonText: '#000000',
-      input: '#2d2d2d'
-    },
-    light: {
-      bg: '#ffffff',
-      surface: '#f7f7f8',
-      border: '#e5e5e5',
-      text: '#000000',
-      textSecondary: '#6b6b6b',
-      accent: '#10a37f',
-      button: '#000000',
-      buttonText: '#ffffff',
-      input: '#ffffff'
-    }
-  }
+  // Premium theme configuration
+  const currentTheme: PremiumTheme = isDarkMode ? claudeCodeDark : claudeCodeLight
   
-  const currentTheme = isDarkMode ? theme.dark : theme.light
+  // Legacy theme adapter for components not yet migrated
+  const legacyTheme = {
+    bg: currentTheme.colors.background,
+    surface: currentTheme.colors.surface,
+    border: currentTheme.colors.border,
+    text: currentTheme.colors.text,
+    textSecondary: currentTheme.colors.textSecondary,
+    accent: currentTheme.colors.primary,
+    button: currentTheme.colors.primary,
+    buttonText: currentTheme.colors.textInverse,
+    input: currentTheme.colors.surfaceHover
+  }
 
   // Initialize component
   useEffect(() => {
@@ -301,11 +291,13 @@ function EnhancedApp() {
   return (
     <ErrorBoundary>
       <div style={{ 
-        background: currentTheme.bg, 
-        color: currentTheme.text, 
+        background: currentTheme.colors.background, 
+        color: currentTheme.colors.text, 
         minHeight: '100vh',
-        fontFamily: '"Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif',
-        transition: 'all 0.3s ease'
+        fontFamily: currentTheme.typography.fontFamily.body,
+        fontSize: currentTheme.typography.fontSize.base,
+        lineHeight: currentTheme.typography.lineHeight.normal,
+        transition: `all ${currentTheme.animation.duration.normal} ${currentTheme.animation.easing.easeOut}`
       }}>
       {/* Top Navigation */}
       <TopNavigation
@@ -315,14 +307,14 @@ function EnhancedApp() {
         onSettingsToggle={handleSettingsToggle}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        currentTheme={currentTheme}
+        currentTheme={legacyTheme}
       />
 
       {/* Settings Panel */}
       {showSettings && (
         <SettingsPanel
           isDarkMode={isDarkMode}
-          currentTheme={currentTheme}
+          currentTheme={legacyTheme}
           onApiKeyChange={handleApiKeyChange}
           apiKey={apiKey}
         />
@@ -331,106 +323,131 @@ function EnhancedApp() {
       {/* KPI Dashboard */}
       <KPIDashboard
         kpiData={kpiData}
-        currentTheme={currentTheme}
+        currentTheme={legacyTheme}
       />
 
       {/* Main Content Area */}
-      <div style={{ padding: '24px' }}>
+      <div style={{ 
+        padding: currentTheme.spacing[6],
+        background: `linear-gradient(135deg, ${currentTheme.colors.background} 0%, ${currentTheme.colors.surface} 100%)`,
+        minHeight: 'calc(100vh - 200px)'
+      }}>
         <div style={{ 
           maxWidth: '1200px', 
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '24px'
+          gap: currentTheme.spacing[6]
         }}>
           {/* Main Workspace */}
           <main style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '24px',
-            minHeight: '600px'
+            gap: currentTheme.spacing[6],
+            minHeight: '600px',
+            position: 'relative'
           }}>
             {/* Chat Interface */}
             <ErrorBoundary fallback={
               <div style={{
-                background: currentTheme.surface,
-                border: `1px solid ${currentTheme.border}`,
-                borderRadius: '12px',
-                padding: '24px',
+                background: currentTheme.colors.surface,
+                border: `1px solid ${currentTheme.colors.border}`,
+                borderRadius: currentTheme.borderRadius.lg,
+                padding: currentTheme.spacing[6],
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: currentTheme.textSecondary
+                color: currentTheme.colors.textSecondary,
+                boxShadow: currentTheme.shadows.md
               }}>
-                Chat interface temporarily unavailable
+                <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                  <Icons.Error size={20} color={currentTheme.colors.error} />
+                  <span>Chat interface temporarily unavailable</span>
+                </div>
               </div>
             }>
               <EnhancedChatInterface
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
-                currentTheme={currentTheme}
+                currentTheme={legacyTheme}
               />
             </ErrorBoundary>
 
             {/* Execution Terminal */}
             <ErrorBoundary fallback={
               <div style={{
-                background: currentTheme.surface,
-                border: `1px solid ${currentTheme.border}`,
-                borderRadius: '12px',
-                padding: '24px',
+                background: currentTheme.colors.surface,
+                border: `1px solid ${currentTheme.colors.border}`,
+                borderRadius: currentTheme.borderRadius.lg,
+                padding: currentTheme.spacing[6],
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: currentTheme.textSecondary
+                color: currentTheme.colors.textSecondary,
+                boxShadow: currentTheme.shadows.md
               }}>
-                Terminal interface temporarily unavailable
+                <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                  <Icons.Terminal size={20} color={currentTheme.colors.warning} />
+                  <span>Terminal interface temporarily unavailable</span>
+                </div>
               </div>
             }>
               <EnhancedTerminal
                 executionSteps={executionSteps}
                 onExecuteCommand={handleExecuteCommand}
-                currentTheme={currentTheme}
+                currentTheme={legacyTheme}
               />
             </ErrorBoundary>
           </main>
 
           {/* Status Footer */}
           <footer style={{
-            borderTop: `1px solid ${currentTheme.border}`,
-            paddingTop: '20px',
+            borderTop: `1px solid ${currentTheme.colors.border}`,
+            paddingTop: currentTheme.spacing[5],
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: '14px',
-            color: currentTheme.textSecondary
+            fontSize: currentTheme.typography.fontSize.sm,
+            color: currentTheme.colors.textSecondary,
+            fontFamily: currentTheme.typography.fontFamily.body
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ 
-                  color: serviceStatus.available ? currentTheme.accent : '#ef4444', 
-                  fontSize: '12px' 
-                }}>
-                  ●
-                </span> 
+            <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[4] }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                <Icons.Claude 
+                  size={16} 
+                  color={serviceStatus.available ? currentTheme.colors.success : currentTheme.colors.error}
+                />
                 <span>
                   {serviceStatus.available ? 'Claude Service Active' : 'Claude Service Offline'}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: currentTheme.textSecondary }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                <Icons.Settings size={14} color={currentTheme.colors.textTertiary} />
+                <span style={{ color: currentTheme.colors.textSecondary }}>
                   Environment: {serviceStatus.environment}
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: currentTheme.textSecondary }}>
-                  API Key: {serviceStatus.hasApiKey ? '✓ Configured' : '✗ Missing'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+                {serviceStatus.hasApiKey ? (
+                  <Icons.Check size={14} color={currentTheme.colors.success} />
+                ) : (
+                  <Icons.Warning size={14} color={currentTheme.colors.warning} />
+                )}
+                <span style={{ color: currentTheme.colors.textSecondary }}>
+                  API Key: {serviceStatus.hasApiKey ? 'Configured' : 'Missing'}
                 </span>
               </div>
             </div>
-            <div>
-              <span>Claude GUI v2.0.0 | Enhanced Production-Ready Interface</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: currentTheme.spacing[2] }}>
+              <Icons.AISpark size={14} color={currentTheme.colors.primary} />
+              <span style={{ 
+                fontFamily: currentTheme.typography.fontFamily.code,
+                fontSize: currentTheme.typography.fontSize.xs,
+                color: currentTheme.colors.textTertiary
+              }}>
+                Claude GUI v2.0.0 | Premium Claude Code Interface
+              </span>
             </div>
           </footer>
         </div>
